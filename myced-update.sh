@@ -20,7 +20,7 @@ GITHUB_REPO='myceworld/myce'
 # Display Name.
 DAEMON_NAME='Myce myceworld/myce'
 # Coin Ticker.
-TICKER='myce'
+TICKER='yce'
 # Binary base name.
 BIN_BASE='myce'
 # Directory.
@@ -74,9 +74,6 @@ cat << "MYCE"
 MYCE
 }
 
-# Discord User Info
-# @mcarper#0918
-# 401161988744544258
 cd ~/ || exit
 COUNTER=0
 rm -f ~/___mn.sh

@@ -1,6 +1,6 @@
 Any VPS provider will work; in this example vultr will be used.
 Get a VPS from here
-https://www.vultr.com/?ref=7581301
+https://www.vultr.com/
 
 Once signed up go here https://my.vultr.com/deploy/ 
 1. Select a location  

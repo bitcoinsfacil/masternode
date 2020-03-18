@@ -1,9 +1,4 @@
-DAEMON_BIN='energid'
-  \#\!/bin/bash
-  DAEMON_BIN='energid'
-  \#\!/bin/bash
-  DAEMON_BIN='energid'
-  #!/bin/bash
+#!/bin/bash
 # shellcheck disable=SC2031
 # shellcheck disable=SC1091
 
@@ -2396,11 +2391,11 @@ SENTINEL_GENERIC_SETUP () {
   echo
 
   echo "Removing ${USR_HOME}/sentinel/"
-  rm -rf "${USR_HOME:?}/sentinel/"
+  sudo rm -rf "${USR_HOME:?}/sentinel/"
   echo "Getting sentinel from ${SENTINEL_GITHUB}."
-  git clone "${SENTINEL_GITHUB}" "${USR_HOME}/sentinel/"
-  git -C "${USR_HOME}/sentinel/" clean -x -f -d
-  git -C "${USR_HOME}/sentinel/" reset --hard
+  sudo su "${USRNAME}" -c "git clone \"${SENTINEL_GITHUB}\" \"${USR_HOME}/sentinel/\""
+  sudo su "${USRNAME}" -c "git -C \"${USR_HOME}/sentinel/\" clean -x -f -d"
+  sudo su "${USRNAME}" -c "git -C \"${USR_HOME}/sentinel/\" reset --hard"
   echo "Chown."
   sudo chown -R "${USRNAME}":"${USRNAME}" "${USR_HOME}/"
 
@@ -2413,7 +2408,7 @@ SENTINEL_GENERIC_SETUP () {
   if [[ -z "${SENTINEL_CONF_START}" ]]
   then
     # Get conf line.
-    SENTINEL_CONF_START=$(  grep -Fi 'io.open(config.' "${USR_HOME}/sentinel/lib/init.py" | grep -o '(.*)' | sed 's/config\.//g' | tr '(' ' ' | tr ')' ' ' | awk '{print $1}' )
+    SENTINEL_CONF_START=$( sudo grep -Fi 'io.open(config.' "${USR_HOME}/sentinel/lib/init.py" | grep -o '(.*)' | sed 's/config\.//g' | tr '(' ' ' | tr ')' ' ' | awk '{print $1}' )
   fi
 
   if [[ -z "${CONF_LOCATION}" ]]
@@ -2458,9 +2453,9 @@ SENTINEL_GENERIC_SETUP () {
   echo "sudo su ${USRNAME} -c 'cd ${USR_HOME}/sentinel/ ; ${USR_HOME}/sentinel/venv/bin/python ${USR_HOME}/sentinel/bin/sentinel.py'"
   if [[ "$( sudo su "${USRNAME}" -c "cd ${USR_HOME}/sentinel/ ; ${USR_HOME}/sentinel/venv/bin/python ${USR_HOME}/sentinel/bin/sentinel.py" 2>&1 | grep -c 'Missing dependencies\|ImportError' )" -gt 0 ]]
   then
-    wget https://www.dropbox.com/s/zmsp1r3xwt3bb26/sentinel-venv.tar.gz?dl=1 -O "${USR_HOME}/sentinel/sentinel-venv.tar.gz" -q --show-progress --progress=bar:force
-    rm -rf "${USR_HOME:?}/sentinel/venv"
-    tar -xf "${USR_HOME}/sentinel/sentinel-venv.tar.gz" -C "${USR_HOME}/sentinel/"
+    sudo su "${USRNAME}" -c "wget https://www.dropbox.com/s/zmsp1r3xwt3bb26/sentinel-venv.tar.gz?dl=1 -O \"${USR_HOME}/sentinel/sentinel-venv.tar.gz\" -q --show-progress --progress=bar:force"
+    sudo rm -rf "${USR_HOME:?}/sentinel/venv"
+    sudo su "${USRNAME}" -c "tar -xf \"${USR_HOME}/sentinel/sentinel-venv.tar.gz\" -C \"${USR_HOME}/sentinel/\""
     echo "Chown."
     sudo chown -R "${USRNAME}":"${USRNAME}" "${USR_HOME}/"
   fi
@@ -3213,19 +3208,20 @@ _masternode_dameon_2 () {
   local TEMP_VAR_C
   local TEMP_VAR_D
   local TEMP_VAR_PID
-  local RE
-  local SP
+  local RE='^[0-9]+$'
+  local RE_FLOAT='^[+-]?([0-9]+\.?|[0-9]*\.[0-9]+)$'
+  local SP="/-\\|"
   local DIR
   local USER_HOME_DIR
-  local ARG9
-  local ARG10
-  local ARG11
-  local ARG12
-  local ARG13
-  local ARG14
-  local ARG15
-  local ARG16
-  local ARG17
+  local ARG9=''
+  local ARG10=''
+  local ARG11=''
+  local ARG12=''
+  local ARG13=''
+  local ARG14=''
+  local ARG15=''
+  local ARG16=''
+  local ARG17=''
   local i
   local DAEMON_CONNECTIONS
   local EXPLORER_BLOCKCOUNT_OFFSET
@@ -3239,15 +3235,6 @@ _masternode_dameon_2 () {
   local REPLY
   local PROJECT_DIR
 
-  ARG9=''
-  ARG10=''
-  ARG11=''
-  ARG12=''
-  ARG13=''
-  ARG14=''
-  ARG15=''
-  ARG16=''
-  ARG17=''
   if [[ ! -z "${9}" ]]
   then
     ARG9=$( printf '%q' "${9}" | sed "s/\\\\\\ / /g" )
@@ -3293,8 +3280,6 @@ _masternode_dameon_2 () {
     CAN_SUDO=$( timeout --foreground --signal=SIGKILL 1s bash -c "sudo -n true >/dev/null 2>&1 && sudo -n -l 2>/dev/null | grep -v '${USRNAME_CURRENT}' | wc -l " 2>/dev/null )
   fi
 
-  RE='^[0-9]+$'
-  SP="/-\\|"
   TEMP_VAR_C="${6}"
   if [[ "${TEMP_VAR_C}" == '-1' ]]
   then
@@ -4032,6 +4017,9 @@ _masternode_dameon_2 () {
     then
       # shellcheck disable=SC2030,SC2031
       BIN_BASE=$( grep -m 1 'bin_base=' "${5}" | cut -d '=' -f2 )
+    fi
+    if [[ -z "${DAEMON_DOWNLOAD}" ]]
+    then
       DAEMON_DOWNLOAD=$( grep -m 1 'daemon_download=' "${5}" | grep -o '=.*' | cut -c2- | tr " " "\n" )
     fi
     # shellcheck disable=SC2030,SC2031
@@ -4285,9 +4273,9 @@ _masternode_dameon_2 () {
     sudo true >/dev/null 2>&1
     USR_EXISTS=$( id -u "${1}" 2>/dev/null )
     DAEMON_BALANCE=$( _masternode_dameon_2 "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" "${7}" "${8}" getbalance )
-    if [[ "${DAEMON_BALANCE}" != 0 ]] && [[ ! "${DAEMON_BALANCE}" =~ $RE_FLOAT ]]
+    if [[ "${DAEMON_BALANCE}" != 0 ]] && [[ "${DAEMON_BALANCE}" =~ $RE_FLOAT ]]
     then
-      echo "WARNING! Balance is not zero!"
+      echo "WARNING! Balance is not zero! ${DAEMON_BALANCE}"
       REPLY=n
       read -r -p $'Still Delete? \e[7m(y/n)\e[0m? ' -e -i "${REPLY}" input 2>&1
       REPLY="${input:-$REPLY}"
@@ -4736,7 +4724,7 @@ ${USER_HOME_DIR}/sentinel/venv/bin/python2
         else
           echo
           echo "${ARG11}=${ARG12}" | sudo tee -a "${5}" >/dev/null
-          echo "Setting ${ARG11}=${ARG12}."
+          echo "Setting ${ARG11}=${ARG12}"
           echo
         fi
 
@@ -4952,6 +4940,12 @@ ${USER_HOME_DIR}/sentinel/venv/bin/python2
       fi
 
       TEMP_VAR_A=$( _masternode_dameon_2 "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" "${7}" "${8}" "${_MASTERNODE_GENKEY_COMMAND}" )
+
+      # New code for dash 0.14.
+      if [[ $( echo "${TEMP_VAR_A}" | grep -c '"secret":' ) -gt 0 ]]
+      then
+        TEMP_VAR_A=$( echo "${TEMP_VAR_A}" | jq -r '.secret' )
+      fi
     fi
 
     if [ -z "${ARG10}" ]
@@ -5411,11 +5405,19 @@ ${TEMP_FILE}
       fi
     fi
 
+    LAST_2K_LOG_LINES_TAC=''
     # Get last 2000 lines of the log file.
-    LAST_2K_LOG_LINES_TAC=$( _masternode_dameon_2 "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" "${7}" "${8}" daemon_log tail 2000 | tac )
+    if [[ -f "${DIR}/debug.log" ]]
+    then
+      LAST_2K_LOG_LINES_TAC=$( tail -n 100 "${DIR}/debug.log" )
+    fi
+    if [[ -z "${LAST_2K_LOG_LINES_TAC}" ]]
+    then
+      LAST_2K_LOG_LINES_TAC=$( _masternode_dameon_2 "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" "${7}" "${8}" daemon_log tail 100 )
+    fi
 
     # See if node is stalled via log files.
-    if [[ $( echo "${LAST_2K_LOG_LINES_TAC}" | head -n 100 | grep -ic "work queue depth exceeded" ) -gt 3 ]]
+    if [[ $( echo "${LAST_2K_LOG_LINES_TAC}" | grep -ic "work queue depth exceeded" ) -gt 3 ]]
     then
       dt=$( date -u '+%d/%m/%Y %H:%M:%S' )
       echo "${dt} Restarting ${1} as it is frozen."
@@ -6513,31 +6515,55 @@ ${TEMP_FILE}
   elif [ "${ARG9}" == "dl_addnode" ]
   then
   (
-    DROPBOX_ADDNODES=$( grep -m 1 'nodelist=' "${5}" | cut -d '=' -f2 )
-    if [ ! -z "${DROPBOX_ADDNODES}" ]
+    if [[ -z "${DROPBOX_ADDNODES}" ]]
     then
-      echo "Downloading addnode list."
-      ADDNODES=$( wget -4qO- -o- https://www.dropbox.com/s/"${DROPBOX_ADDNODES}"/peers_1.txt?dl=1 | grep 'addnode=' | shuf )
-      TEMP_VAR_PID=$( _masternode_dameon_2 "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" "${7}" "${8}" pid )
-      if [[ ! -z "${TEMP_VAR_PID}" ]]
-      then
-        _masternode_dameon_2 "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" "${7}" "${8}" stop
-      fi
+      DROPBOX_ADDNODES=$( grep -m 1 'nodelist=' "${5}" | cut -d '=' -f2 )
+    fi
 
-      if [[ ${CAN_SUDO} =~ ${RE} ]] && [[ "${CAN_SUDO}" -gt 2 ]]
-      then
-        sudo sed -i '/addnode\=/d' "${5}"
-        echo "${ADDNODES}" | tr " " "\\n" | sudo tee -a "${5}" >/dev/null "${5}"
-      else
-        sed -i '/addnode\=/d' "${5}"
-        echo "${ADDNODES}" | tr " " "\\n" >> "${5}"
-      fi
+    if [[ ! -z "${ARG10}" ]] && [[ "${ARG10}" == http* ]]
+    then
+      DROPBOX_ADDNODES="${ARG10}"
+    fi
 
-      if [[ ! -z "${TEMP_VAR_PID}" ]]
-      then
-        sleep 5
-        _masternode_dameon_2 "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" "${7}" "${8}" start
-      fi
+    if [[ -z "${DROPBOX_ADDNODES}" ]]
+    then
+      echo
+      echo "Addnode list could not be found. Ask for help on discord."
+      echo
+      return 1 2>/dev/null
+    fi
+
+    if [[ "$( echo "${DROPBOX_ADDNODES}" | grep -cE '^(http|https)://' )" -gt 0 ]]
+    then
+      ADDNODE_URL="${DROPBOX_ADDNODES}"
+    else
+      ADDNODE_URL="https://www.dropbox.com/s/${DROPBOX_ADDNODES}/peers_1.txt?dl=1"
+    fi
+
+    echo "Downloading addnode list."
+    echo "${ADDNODE_URL}"
+    ADDNODES=$( wget -4qO- -o- "${ADDNODE_URL}" | grep 'addnode=' | shuf )
+
+    TEMP_VAR_PID=$( _masternode_dameon_2 "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" "${7}" "${8}" pid )
+    if [[ ! -z "${TEMP_VAR_PID}" ]]
+    then
+      _masternode_dameon_2 "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" "${7}" "${8}" stop
+    fi
+
+    # Add nodelist to the conf file.
+    if [[ ${CAN_SUDO} =~ ${RE} ]] && [[ "${CAN_SUDO}" -gt 2 ]]
+    then
+      sudo sed -i '/addnode\=/d' "${5}"
+      echo "${ADDNODES}" | tr " " "\\n" | sudo tee -a "${5}" >/dev/null "${5}"
+    else
+      sed -i '/addnode\=/d' "${5}"
+      echo "${ADDNODES}" | tr " " "\\n" >> "${5}"
+    fi
+
+    if [[ ! -z "${TEMP_VAR_PID}" ]]
+    then
+      sleep 5
+      _masternode_dameon_2 "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" "${7}" "${8}" start
     fi
   )
 
@@ -6930,6 +6956,19 @@ ${TXID} ${OUTPUTIDX}"
     then
       echo "${MASTERNODE_STATUS}" | jq .
     else
+      echo "${MASTERNODE_STATUS}"
+    fi
+  )
+
+  elif [ "${ARG9}" == "useful" ]
+  then
+  (
+    DAEMON_BALANCE=$( _masternode_dameon_2 "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" "${7}" "${8}" getbalance )
+    if [[ "${DAEMON_BALANCE}" != 0 ]] && [[ "${DAEMON_BALANCE}" =~ $RE_FLOAT ]]
+    then
+      echo "${DAEMON_BALANCE}"
+    else
+      MASTERNODE_STATUS=$( _masternode_dameon_2 "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" "${7}" "${8}" mnstatus )
       echo "${MASTERNODE_STATUS}"
     fi
   )
@@ -8025,6 +8064,10 @@ UPDATE_DAEMON_ADD_CRON () {
       echo "Adding bin_base=${BIN_BASE}"
       echo -e "\\n# bin_base=${BIN_BASE}"  >> "${CONF_FILE}"
     fi
+    if [[ ! -z "${DAEMON_DOWNLOAD}" ]]
+    then
+      sed -i '/# daemon_download=/d' "${CONF_FILE}"
+    fi
     if [[ $( grep -c 'daemon_download' < "${CONF_FILE}" ) -eq 0 ]]
     then
       echo "Adding daemon_download=${DAEMON_DOWNLOAD}"
@@ -8059,6 +8102,7 @@ UPDATE_DAEMON_ADD_CRON () {
       MINUTES=$(( RANDOM % 19 ))
       MINUTES_A=$(( MINUTES + 20 ))
       MINUTES_B=$(( MINUTES + 40 ))
+      sudo chown -R "${MN_USRNAME}":"${MN_USRNAME}" "${USR_HOME}/"
       rm -f "${USR_HOME}/mnfix.log"
       sudo su "${MN_USRNAME}" -c "touch \"${USR_HOME}/mnfix.log\""
       sudo su "${MN_USRNAME}" -c " ( crontab -l ; echo \"${MINUTES},${MINUTES_A},${MINUTES_B} * * * * bash -ic 'source /var/multi-masternode-data/.bashrc; ${MN_USRNAME} mnfix 2>&1' 2>&1 >> ${USR_HOME}/mnfix.log \" ) | crontab - "
@@ -10060,8 +10104,8 @@ then
   MINUTES=$(( RANDOM % 19 ))
   MINUTES_A=$(( MINUTES + 20 ))
   MINUTES_B=$(( MINUTES + 40 ))
-  rm -f "${USR_HOME}/mnfix.log"
-  touch "${USR_HOME}/mnfix.log"
+  sudo rm -f "${USR_HOME}/mnfix.log"
+  sudo su "${USRNAME}" -c "touch \"${USR_HOME}/mnfix.log\""
   sudo su "${USRNAME}" -c " ( crontab -l ; echo \"${MINUTES},${MINUTES_A},${MINUTES_B} * * * * bash -ic 'source /var/multi-masternode-data/.bashrc; ${USRNAME} mnfix 2>&1' 2>&1 >> ${USR_HOME}/mnfix.log \" ) | crontab - "
 fi
 
