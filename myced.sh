@@ -30,7 +30,7 @@ CONF='myce.conf'
 # Port.
 DEFAULT_PORT=23511
 # Explorer URL
-EXPLORER_URL='https://explorer.myce.world/'
+EXPLORER_URL='http://explorer.myce.world/'
 # Bad Explorer SSL.
 BAD_SSL_HACK='--no-check-certificate'
 # Rate limit explorer
@@ -50,11 +50,11 @@ MN_KEY_SEGV=1
 # Tip Address
 TIPS='MRwqWT27m1WhpRR8XSHWvbcj7uetU8D3gD'
 # Dropbox Addnodes
-DROPBOX_ADDNODES='xdzoc7ntncapimr'
+DROPBOX_ADDNODES=''
 # Dropbox Bootstrap
-DROPBOX_BOOTSTRAP='e9zzivi3lhb3hxx'
+DROPBOX_BOOTSTRAP=''
 # Dropbox blocks and chainstake folders.
-DROPBOX_BLOCKS_N_CHAINS='zsgq3ehhu13k1ew'
+DROPBOX_BLOCKS_N_CHAINS=''
 
 
 ASCII_ART () {
